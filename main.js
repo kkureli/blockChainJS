@@ -1,10 +1,17 @@
 const SHA256 = require("crypto-js/sha256");
 
+class Transaction {
+  constructor(fromAddress, toAddress, amount) {
+    this.fromAddress = fromAddress;
+    this.toAddress = toAddress;
+    this.amount = amount;
+  }
+}
+
 class Block {
-  constructor(index, timestamp, data, previousHash = "") {
-    this.index = index;
+  constructor(timestamp, transactions, previousHash = "") {
     this.timestamp = timestamp;
-    this.data = data;
+    this.transactions = transactions;
     this.previousHash = previousHash;
     this.hash = this.calculateHash(); //identifier of this block in chain
     this.nonce = 0;
@@ -12,8 +19,7 @@ class Block {
 
   calculateHash = () => {
     return SHA256(
-      this.index +
-        this.previousHash +
+      this.previousHash +
         this.timestamp +
         JSON.stringify(this.data) +
         this.nonce
@@ -36,26 +42,62 @@ class Block {
 class Blockchain {
   constructor() {
     this.chain = [this.createGenesisBlock()]; //array of blocks
-    this.difficulty = 1;
+    this.difficulty = 3;
+    this.pendingTransactions = [];
+    this.miningReward = 100;
   }
 
   //first block in blockchain is called GenesisBlock added manually
 
   createGenesisBlock() {
-    return new Block(0, "22/05/2020", "Genesis block", "0");
+    return new Block("22/05/2020", "Genesis block", "0");
   }
 
   getLatestBlock() {
     return this.chain[this.chain.length - 1];
   }
 
-  addBlock(newBlock) {
-    // The previous hash value of the new block is the hash value of the last block of the existing blockchain；
-    newBlock.previousHash = this.getLatestBlock().hash;
-    // Recalculate the hash value of the new block (because the previousHash is specified)；
-    // newBlock.hash = newBlock.calculateHash();
-    newBlock.mineBlock(this.difficulty);
-    this.chain.push(newBlock);
+  // addBlock(newBlock) {
+  //   // The previous hash value of the new block is the hash value of the last block of the existing blockchain；
+  //   newBlock.previousHash = this.getLatestBlock().hash;
+  //   // Recalculate the hash value of the new block (because the previousHash is specified)；
+  //   // newBlock.hash = newBlock.calculateHash();
+  //   newBlock.mineBlock(this.difficulty);
+  //   this.chain.push(newBlock);
+  // }
+
+  minePendingTransactions(miningRewardAddress) {
+    let block = new Block(Date.now(), this.pendingTransactions);
+    block.mineBlock(this.difficulty);
+    console.log("Block successfully mined!");
+    this.chain.push(block);
+
+    //bir sonraki miner bu minera odulu akatarabilecek. oyuzden bunun odulu beklemeye atiliyor.
+    this.pendingTransactions = [
+      new Transaction(null, miningRewardAddress, this.miningReward),
+    ];
+  }
+
+  createTransaction(transaction) {
+    this.pendingTransactions.push(transaction);
+  }
+
+  getBalanceOfAddress(address) {
+    let balance = 0;
+
+    for (const block of this.chain) {
+      for (const trans of block.transactions) {
+        if (trans.fromAddress === address) {
+          balance -= trans.amount;
+        }
+
+        if (trans.toAddress === address) {
+          balance += trans.amount;
+        }
+      }
+    }
+
+    return balance;
   }
 
   isChainValid() {
@@ -76,9 +118,16 @@ class Blockchain {
 }
 
 let kaanCoin = new Blockchain();
+kaanCoin.createTransaction(new Transaction("address1", "address2", 100));
+kaanCoin.createTransaction(new Transaction("address2", "address1", 50));
 
-// console.log("Mining block 1..");
+console.log("Starting the miner..");
 
-// kaanCoin.addBlock(new Block(1, "23/05/2020", { amount: 4 }));
-// console.log("Mining block 1..");
-kaanCoin.addBlock(new Block(2, "24/05/2020", { amount: 40 }));
+kaanCoin.minePendingTransactions("miner1Address");
+kaanCoin.minePendingTransactions("miner1Address");
+
+console.log(
+  "Balance of miner1 is: " + kaanCoin.getBalanceOfAddress("miner1Address")
+);
+
+console.log(kaanCoin.chain);
