@@ -7,6 +7,7 @@ class Block {
     this.data = data;
     this.previousHash = previousHash;
     this.hash = this.calculateHash(); //identifier of this block in chain
+    this.nonce = 0;
   }
 
   calculateHash = () => {
@@ -14,14 +15,28 @@ class Block {
       this.index +
         this.previousHash +
         this.timestamp +
-        JSON.stringify(this.data)
+        JSON.stringify(this.data) +
+        this.nonce
     ).toString();
+  };
+
+  mineBlock = (difficulty) => {
+    while (
+      this.hash.substring(0, difficulty) !== Array(difficulty + 1).join("0")
+    ) {
+      console.log("hash is..", this.nonce, this.hash);
+
+      this.nonce++;
+      this.hash = this.calculateHash();
+    }
+    console.log("Block mined: " + this.hash);
   };
 }
 
 class Blockchain {
   constructor() {
     this.chain = [this.createGenesisBlock()]; //array of blocks
+    this.difficulty = 1;
   }
 
   //first block in blockchain is called GenesisBlock added manually
@@ -38,8 +53,8 @@ class Blockchain {
     // The previous hash value of the new block is the hash value of the last block of the existing blockchain；
     newBlock.previousHash = this.getLatestBlock().hash;
     // Recalculate the hash value of the new block (because the previousHash is specified)；
-    newBlock.hash = newBlock.calculateHash();
-
+    // newBlock.hash = newBlock.calculateHash();
+    newBlock.mineBlock(this.difficulty);
     this.chain.push(newBlock);
   }
 
@@ -61,8 +76,9 @@ class Blockchain {
 }
 
 let kaanCoin = new Blockchain();
-kaanCoin.addBlock(new Block(1, "23/05/2020", { amount: 4 }));
-kaanCoin.addBlock(new Block(2, "24/05/2020", { amount: 10 }));
 
-// console.log(JSON.stringify(kaanCoin, null, 4));
-console.log("isValid?", kaanCoin.isChainValid());
+// console.log("Mining block 1..");
+
+// kaanCoin.addBlock(new Block(1, "23/05/2020", { amount: 4 }));
+// console.log("Mining block 1..");
+kaanCoin.addBlock(new Block(2, "24/05/2020", { amount: 40 }));
